@@ -10,9 +10,11 @@ from gtts import gTTS
 import pygame
 from dotenv import load_dotenv
 from datetime import datetime
-
+#import pyttsx3
 import random
+import psutil
 
+#engine = pyttsx3.init()
 
 recognizer = sr.Recognizer()
 load_dotenv()
@@ -20,10 +22,10 @@ ollama_client = Client(host='http://localhost:11434')
 newsapi = os.getenv("NEWS_API_KEY")
 weatherapi = os.getenv("WEATHER_API_KEY")
 
-#def speak(text):
-   # print(f"Nova":{text}")
-    #engine.say(text)
-    #engine.runAndWait()
+'''def speak(text):
+    print(f"Nova:{text}")
+    engine.say(text)
+    engine.runAndWait()'''
 
 def speak(text):
     print(f"NOVA : {text}")
@@ -70,6 +72,28 @@ def get_weather(city_name):
         return result
     except Exception as e:
         return f"Error fetching weather data: {str(e)}"
+    
+
+def system_monitor():
+    cpu = psutil.cpu_percent(interval = 1)
+    ram = psutil.virtual_memory().percent
+    disk = psutil.disk_usage('/').percent
+
+    info = f"CPU Usage is {cpu}% , RAM Usage is {ram}% , Disk Usage is{disk}%"
+    print(info)
+    speak(info)
+
+def search_file(filename , search_path = "C:\\"):
+        found_files = []
+        for root , dirs , files in os.walk(search_path):
+            if filename.lower() in map(str.lower , files):
+                found_files.append(os.path.join(root , filename))
+        if found_files:
+            speak(f"Found {len(found_files)} file(s). Showing top 5 results:")
+            for f in found_files[:5]:
+                print(f)
+        else:
+            speak("No file found with this name.")
 
 def processCommand(c):
     if "open google" in c.lower():
@@ -152,6 +176,19 @@ def processCommand(c):
         current_time = now.strftime("%I:%M %p")
         current_date = now.strftime("%B %d, %Y")
         speak(f"Sir , the current time is {current_time} and today's date is {current_date}")
+
+    elif "system monitor" in c.lower() or "system status" in c.lower():
+        system_monitor()
+
+    elif "search file" in c.lower():
+        speak("tell me the file name to search")
+        try:
+            with sr.Microphone() as source:
+                audio = recognizer.listen(source , timeout=10)
+                filename = recognizer.recognize_google(audio).lower()
+                search_file(filename)
+        except Exception as e:
+            speak(f"Error in file search : {e}")
     
     else:
          output = aiProcess(c)
